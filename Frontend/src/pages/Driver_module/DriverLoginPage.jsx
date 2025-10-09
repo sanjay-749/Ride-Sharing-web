@@ -2,7 +2,6 @@ import React, { useState, useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { driverLogin } from "../../services/driverService";
 import { useNavigate } from "react-router-dom";
-
 const DriverLoginPage = () => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");

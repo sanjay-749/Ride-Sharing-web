@@ -1,22 +1,18 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import DriverLoginPage from "../pages/driver/DriverLoginPage";
-import DriverDashboard from "../pages/driver/DriverDashboard";
-import RideOfferPage from "../pages/driver/RideOfferPage";
-import RideInProgressPage from "../pages/driver/RideInProgressPage";
-import EarningsHistoryPage from "../pages/driver/EarningsHistoryPage";
-import DriverProfilePage from "../pages/driver/DriverProfilePage";
+import HomePage from "../pages/user/HomePage";
+import LoginPage from "../pages/user/LoginPage";
+import NotFoundPage from "../pages/common/NotFoundPage";
+import SignupPage from "../pages/user/SignupPage";
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/driver/login" element={<DriverLoginPage />} />
-        <Route path="/driver/dashboard" element={<DriverDashboard />} />
-        <Route path="/driver/ride-offer" element={<RideOfferPage />} />
-        <Route path="/driver/ride-in-progress" element={<RideInProgressPage />} />
-        <Route path="/driver/earnings" element={<EarningsHistoryPage />} />
-        <Route path="/driver/profile" element={<DriverProfilePage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage/>}/>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
