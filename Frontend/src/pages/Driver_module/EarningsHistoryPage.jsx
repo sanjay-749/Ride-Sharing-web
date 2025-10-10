@@ -1,34 +1,46 @@
 import React, { useEffect, useState } from "react";
-import { getEarningsHistory } from "../../services/driverService";
+import { getEarnings } from "../../services/driverService";
+import { motion } from "framer-motion";
 
-const EarningsHistoryPage = () => {
+export default function EarningsHistoryPage() {
   const [earnings, setEarnings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEarnings = async () => {
-      const data = await getEarningsHistory(localStorage.getItem("driverToken"));
-      setEarnings(data);
+    const load = async () => {
+      try {
+        const data = await getEarnings();
+        setEarnings(data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchEarnings();
+    load();
   }, []);
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <h2 className="text-3xl font-bold text-primary mb-6">Earnings History</h2>
-      <div className="grid gap-4">
-        {earnings.length === 0 && <p className="text-secondary">No rides completed yet.</p>}
-        {earnings.map((ride) => (
-          <div key={ride.id} className="card flex justify-between items-center">
-            <div>
-              <p className="font-semibold text-primary">{ride.pickup} → {ride.drop}</p>
-              <p className="text-secondary">{ride.date}</p>
-            </div>
-            <p className="font-bold text-primary">₹{ride.fare}</p>
-          </div>
-        ))}
-      </div>
+    <div className="min-h-screen bg-white p-6">
+      <h2 className="text-2xl font-bold text-[#1E3A8A] mb-4">Earnings history</h2>
+
+      {loading ? <div className="p-6 bg-[#F3F4F6] rounded">Loading…</div> : (
+        <div className="grid gap-4">
+          {earnings.length === 0 && <div className="p-6 bg-[#F3F4F6] rounded">No earnings yet</div>}
+          {earnings.map((e) => (
+            <motion.div key={e.id} whileHover={{ scale: 1.02 }} className="bg-white p-4 rounded-xl shadow border border-gray-100 flex justify-between">
+              <div>
+                <div className="font-semibold text-[#111827]">{e.rideLabel || `Ride #${e.id}`}</div>
+                <div className="text-sm text-gray-500">{new Date(e.date).toLocaleString()}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[#0F4C81] font-semibold">₹{e.amount}</div>
+                <div className="text-sm text-gray-500">{e.status}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default EarningsHistoryPage;
+}

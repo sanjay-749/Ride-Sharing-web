@@ -1,41 +1,43 @@
 import React, { useContext } from "react";
 import { RideContext } from "../../context/RideContext";
+import { acceptRide } from "../../services/driverService";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
-const RideOfferPage = () => {
-  const { rideRequests, setCurrentRide } = useContext(RideContext);
+export default function RideOfferPage() {
+  const { currentRide, setCurrentRide } = useContext(RideContext);
   const navigate = useNavigate();
 
-  if (rideRequests.length === 0) return <p className="p-6 text-secondary">No ride offers available.</p>;
+  if (!currentRide) return <div className="min-h-screen flex items-center justify-center">No ride selected.</div>;
 
-  const ride = rideRequests[0];
-
-  const acceptRide = () => {
-    setCurrentRide(ride);
-    navigate("/driver/ride-in-progress");
+  const onAccept = async () => {
+    try {
+      await acceptRide(currentRide.id);
+      // update context and navigate to in-progress page
+      navigate("/driver/in-progress");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to accept ride");
+    }
   };
 
-  const declineRide = () => {
-    // Remove ride from list (simulate decline)
-    rideRequests.shift();
+  const onDecline = () => {
     setCurrentRide(null);
     navigate("/driver/dashboard");
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
-      <div className="card w-full max-w-lg">
-        <h2 className="text-2xl font-bold text-primary mb-4">New Ride Request</h2>
-        <p className="text-lg text-primary font-semibold mb-2">Pickup: {ride.pickup}</p>
-        <p className="text-lg text-primary font-semibold mb-2">Drop: {ride.drop}</p>
-        <p className="text-secondary mb-4">Fare: ₹{ride.fare}</p>
-        <div className="flex gap-4">
-          <button className="btn-primary w-1/2" onClick={acceptRide}>Accept</button>
-          <button className="btn-secondary w-1/2" onClick={declineRide}>Decline</button>
+    <div className="min-h-screen p-6 bg-white flex items-center justify-center">
+      <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="w-full max-w-lg bg-[#F3F4F6] p-6 rounded-xl shadow">
+        <h2 className="text-2xl font-bold text-[#1E3A8A] mb-3">Ride Request</h2>
+        <p className="font-semibold text-[#111827]">Pickup: {currentRide.pickup}</p>
+        <p className="text-gray-600">Drop: {currentRide.drop}</p>
+        <p className="text-[#0F4C81] font-semibold mt-2">Fare: ₹{currentRide.fare}</p>
+        <div className="mt-6 flex gap-3">
+          <button onClick={onAccept} className="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition">Accept</button>
+          <button onClick={onDecline} className="flex-1 bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition">Decline</button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
-};
-
-export default RideOfferPage;
+}

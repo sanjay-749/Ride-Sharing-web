@@ -1,64 +1,51 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useEffect, useState, useContext } from "react";
+import { getDriverProfile, updateDriverProfile } from "../../services/driverService";
 import { AuthContext } from "../../context/AuthContext";
-import { updateDriverProfile } from "../../services/driverService";
+import { motion } from "framer-motion";
 
-const DriverProfilePage = () => {
-  const { driver, token, login } = useContext(AuthContext);
-  const [formData, setFormData] = useState({
-    name: driver?.name || "",
-    email: driver?.email || "",
-    phone: driver?.phone || "",
-  });
+export default function DriverProfilePage() {
+  const { driver, refreshProfile } = useContext(AuthContext);
+  const [form, setForm] = useState({ name: "", email: "", vehicle: "" });
+  const [loading, setLoading] = useState(false);
 
-  const [success, setSuccess] = useState("");
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getDriverProfile();
+        setForm({ name: data.name || "", email: data.email || "", vehicle: data.vehicle || "" });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
+  }, []);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    const updatedDriver = await updateDriverProfile(formData, token);
-    login(updatedDriver, token);
-    setSuccess("Profile updated successfully!");
+    setLoading(true);
+    try {
+      await updateDriverProfile(form);
+      await refreshProfile();
+      alert("Saved");
+    } catch (err) {
+      console.error(err);
+      alert("Save failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 flex justify-center">
-      <div className="card w-full max-w-md">
-        <h2 className="text-2xl font-bold text-primary mb-4">Driver Profile</h2>
-        {success && <p className="text-success mb-2">{success}</p>}
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <input
-            className="input"
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="input"
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="input"
-            type="text"
-            name="phone"
-            placeholder="Phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-          />
-          <button type="submit" className="btn-primary w-full">Update Profile</button>
-        </form>
-      </div>
+    <div className="min-h-screen bg-white p-6 flex items-center justify-center">
+      <motion.form initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onSubmit={onSubmit} className="w-full max-w-md bg-[#F3F4F6] p-6 rounded-xl shadow">
+        <h2 className="text-2xl font-bold text-[#1E3A8A] mb-4">Profile</h2>
+        <input name="name" value={form.name} onChange={onChange} className="w-full p-3 mb-3 rounded border" placeholder="Full name" />
+        <input name="email" value={form.email} onChange={onChange} className="w-full p-3 mb-3 rounded border" placeholder="Email" />
+        <input name="vehicle" value={form.vehicle} onChange={onChange} className="w-full p-3 mb-3 rounded border" placeholder="Vehicle info" />
+        <button type="submit" className="w-full py-3 bg-[#1E3A8A] text-white rounded-md">{loading ? "Saving..." : "Save changes"}</button>
+      </motion.form>
     </div>
   );
-};
-
-export default DriverProfilePage;
+}
