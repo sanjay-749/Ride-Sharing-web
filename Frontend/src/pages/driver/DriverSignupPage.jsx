@@ -2,17 +2,39 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { addDriver } from "../../services/driverService"; // Make sure to export signup API here
 
 export default function DriverSignupPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [vehicleNumber, setVehicleNumber] = useState("");
+  const [vehicle, setVehicle] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // For demo, navigate to dashboard after signup
-    navigate("/driver/dashboard");
+
+    try {
+      const driverData = {
+        name,
+        email,
+        phone,
+        vehicleNumber,
+        vehicle,
+        password,
+        status: "active" // default status
+      };
+
+      const data = await signupDriver({ name, email, phone, vehicleNumber, vehicle, password });
+      localStorage.setItem("driverToken", data.token);
+      localStorage.setItem("driverInfo", JSON.stringify(data.driver));
+navigate("/driver/dashboard");
+    } catch (err) {
+      console.error("Signup error:", err);
+      alert("Failed to sign up. Please try again.");
+    }
   };
 
   return (
@@ -44,6 +66,33 @@ export default function DriverSignupPage() {
             className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none transition duration-300"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <motion.input
+            whileFocus={{ scale: 1.02, borderColor: "#06B6D4", boxShadow: "0 0 12px rgba(6,182,212,0.5)" }}
+            type="text"
+            placeholder="Phone"
+            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none transition duration-300"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+          <motion.input
+            whileFocus={{ scale: 1.02, borderColor: "#06B6D4", boxShadow: "0 0 12px rgba(6,182,212,0.5)" }}
+            type="text"
+            placeholder="Vehicle Number"
+            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none transition duration-300"
+            value={vehicleNumber}
+            onChange={(e) => setVehicleNumber(e.target.value)}
+            required
+          />
+          <motion.input
+            whileFocus={{ scale: 1.02, borderColor: "#06B6D4", boxShadow: "0 0 12px rgba(6,182,212,0.5)" }}
+            type="text"
+            placeholder="Vehicle Type (e.g., Bike, Car)"
+            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none transition duration-300"
+            value={vehicle}
+            onChange={(e) => setVehicle(e.target.value)}
             required
           />
           <motion.input

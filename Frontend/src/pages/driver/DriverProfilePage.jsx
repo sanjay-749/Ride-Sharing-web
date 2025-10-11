@@ -1,32 +1,50 @@
 // src/pages/driver/DriverProfilePage.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit2, Phone, Mail, Car, X } from "lucide-react";
 import DriverLayout from "../../component/driver/DriverLayout";
+import { getDriverProfile, updateDriverProfile } from "../../services/driverService";
 
 export default function DriverProfilePage() {
-  const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "driver@example.com",
-    phone: "+91 9876543210",
-    vehicle: "Toyota Prius - KA 01 AB 1234",
-  });
-
+  const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(profile);
+  const [formData, setFormData] = useState({});
+
+  // Fetch driver profile on component mount
+  useEffect(() => {
+  async function fetchProfile() {
+    try {
+      const driverData = await getDriverProfile(); // will send token in service
+      setProfile(driverData);
+    } catch (err) {
+      console.error("Failed to load driver profile:", err);
+      alert("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
+  }
+  fetchProfile();
+}, []);
 
   const handleEdit = () => {
     setFormData(profile);
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    setProfile(formData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const updatedProfile = await updateDriverProfile(formData);
+      setProfile(updatedProfile);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+    }
   };
 
+  if (!profile) return <p className="text-center mt-10">Loading profile...</p>;
+
   return (
-    <DriverLayout>
+    <DriverLayout driver={profile}>
       {/* Page Header */}
       <div className="text-center mb-8">
         <motion.h1
@@ -76,7 +94,7 @@ export default function DriverProfilePage() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
           <ProfileInfo label="Email" value={profile.email} icon={<Mail />} />
           <ProfileInfo label="Phone" value={profile.phone} icon={<Phone />} />
-          <ProfileInfo label="Vehicle" value={profile.vehicle} icon={<Car />} />
+          <ProfileInfo label="Vehicle" value={`${profile.vehicle} - ${profile.vehicleNumber}`} icon={<Car />} />
         </div>
 
         {/* Edit Button */}
@@ -115,14 +133,14 @@ export default function DriverProfilePage() {
                 Edit Profile
               </h2>
 
-              {Object.keys(formData).map((key) => (
+              {["name", "email", "phone", "vehicle", "vehicleNumber"].map((key) => (
                 <div key={key} className="mb-4">
                   <label className="text-sm font-semibold text-gray-600 capitalize">
                     {key}
                   </label>
                   <input
                     type="text"
-                    value={formData[key]}
+                    value={formData[key] || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, [key]: e.target.value })
                     }

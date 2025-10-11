@@ -2,17 +2,26 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { loginDriver } from "../../services/driverService";
 
 export default function DriverLoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // For demo, navigate directly to dashboard
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const data = await loginDriver({ email, password });
+    // Save token & driver info to localStorage
+    localStorage.setItem("driverToken", data.token); // JWT
+    localStorage.setItem("driverInfo", JSON.stringify(data.driver));
     navigate("/driver/dashboard");
-  };
+  } catch (err) {
+    alert("Login failed. Please check your credentials.");
+    console.error(err);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-600 to-cyan-400 px-4">

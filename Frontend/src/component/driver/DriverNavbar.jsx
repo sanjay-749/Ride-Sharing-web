@@ -1,9 +1,28 @@
-import React, { useState } from "react";
+// src/components/driver/DriverNavbar.jsx
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaBars, FaUserCircle } from "react-icons/fa";
 
-export default function DriverNavbar({ driverName = "John Doe", driverEmail = "driver@example.com", onLogout, onSidebarToggle }) {
+export default function DriverNavbar({ onLogout, onSidebarToggle }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [driver, setDriver] = useState({ name: "John Doe", email: "driver@example.com" });
+
+  // Load driver info from localStorage on mount
+  useEffect(() => {
+    const storedDriver = localStorage.getItem("driverInfo");
+    if (storedDriver) {
+      setDriver(JSON.parse(storedDriver));
+    }
+  }, []);
+
+  const driverName = driver?.name || "John Doe";
+  const driverEmail = driver?.email || "driver@example.com";
+
+  const handleLogout = () => {
+    localStorage.removeItem("driverToken");
+    localStorage.removeItem("driverInfo");
+    if (onLogout) onLogout();
+  };
 
   return (
     <nav className="w-full bg-white shadow-md px-6 py-3 flex justify-between items-center sticky top-0 z-50">
@@ -49,7 +68,7 @@ export default function DriverNavbar({ driverName = "John Doe", driverEmail = "d
               className="absolute right-0 mt-2 w-36 bg-white shadow-lg rounded-xl p-2 flex flex-col gap-2 z-50"
             >
               <button
-                onClick={onLogout}
+                onClick={handleLogout}
                 className="text-red-600 hover:bg-red-50 px-2 py-1 rounded transition font-medium"
               >
                 Logout
