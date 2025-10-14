@@ -1,64 +1,68 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // ✅ import useNavigate
+import { Link, useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const navigate = useNavigate(); // ✅ initialize navigate
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
     try {
-      const response = await fetch("http://localhost:8080/auth/login", {
+      const res = await fetch("http://localhost:8080/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      const data = await res.json();
 
-      if (response.ok) {
-        const data = await response.json();
-        setMessage("✅ Login successful!");
-        console.log("Token:", data.token);
-
-        // ✅ Redirect to Home page after short delay
-        setTimeout(() => {
-          navigate("/"); // change this route name if your home page is different
-        }, 1500);
+      if (res.ok) {
+        localStorage.setItem("authToken", data.token);
+        setMessage("✅ Login successful! Redirecting...");
+        setTimeout(() => navigate("/"), 1500);
       } else {
-        setMessage("❌ Invalid credentials. Please try again.");
+        setMessage(`❌ ${data.message || "Login failed"}`);
       }
-    } catch (error) {
-      console.error("Error:", error);
-      setMessage("⚠️ Something went wrong. Try again later.");
+    } catch (err) {
+      setMessage("⚠️ Something went wrong. Try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-96">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          🚗 RideMart Login
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="bg-white p-10 rounded-3xl shadow-xl w-full max-w-md">
+        <h2 className="text-4xl font-extrabold text-gray-800 text-center mb-8">
+          🔐 Login
         </h2>
+        <p className="text-center text-gray-500 mb-6">
+          Welcome back to RideMart
+        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
-              Email
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+              placeholder="your.email@example.com"
+              className="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
             <input
@@ -66,32 +70,34 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 outline-none"
+              className="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-200"
               required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold rounded-lg hover:opacity-90 transition duration-300"
+            disabled={loading}
+            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-semibold rounded-xl hover:opacity-95 transition duration-300 shadow-md disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         {message && (
-          <p className="mt-4 text-center text-sm font-medium text-gray-700">
-            {message}
+          <p className="mt-4 text-center text-sm font-medium">
+            {message.includes("✅") ? (
+              <span className="text-green-600">{message}</span>
+            ) : (
+              <span className="text-red-600">{message}</span>
+            )}
           </p>
         )}
 
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Don’t have an account?{" "}
-          <Link
-            to="/signup"
-            className="text-indigo-600 font-semibold hover:underline"
-          >
-            Sign Up
+        <p className="mt-6 text-center text-sm text-gray-500">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-indigo-600 font-semibold hover:underline">
+            Sign up
           </Link>
         </p>
       </div>
