@@ -58,6 +58,12 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
+    // ✅ Get user ID by email
+    public Long getUserIdByEmail(String email) {
+        Optional<User> user = userRepository.findByEmail(email);
+        return user.map(User::getId).orElse(null);
+    }
+
     // ✅ Extract email from token
     public String extractEmailFromToken(String token) {
         return jwtUtil.extractEmail(token);

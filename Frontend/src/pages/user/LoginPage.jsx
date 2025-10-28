@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext"; // Import the useAuth hook
 
 export default function LoginPage() {
+  const { login } = useAuth(); // Get the login function from our context
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -22,7 +24,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("authToken", data.token);
+        // Use the context's login function to set the state globally
+        login(data.token); 
         setMessage("✅ Login successful! Redirecting...");
         setTimeout(() => navigate("/"), 1500);
       } else {
