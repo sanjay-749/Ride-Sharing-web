@@ -27,7 +27,7 @@ export default function LoginPage() {
         // Use the context's login function to set the state globally
         login(data.token); 
         setMessage("✅ Login successful! Redirecting...");
-        setTimeout(() => navigate("/"), 1500);
+        setTimeout(() => navigate("/uhome"), 1500);
       } else {
         setMessage(`❌ ${data.message || "Login failed"}`);
       }

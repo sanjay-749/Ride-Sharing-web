@@ -17,7 +17,7 @@ export default function PaymentPage() {
     // If no amount/ride data, redirect back
     if (!amount || !ride.id) {
       alert("No ride data found. Redirecting to home.");
-      navigate("/");
+      navigate("/uhome");
     }
   }, [amount, ride.id, navigate]);
 
@@ -88,7 +88,7 @@ export default function PaymentPage() {
       alert("✅ Payment successful! Ride completed.");
       
       // Navigate to homepage after successful payment
-      navigate("/", { 
+      navigate("/uhome", { 
         state: { 
           paymentSuccess: true,
           rideDetails: ride
@@ -152,7 +152,7 @@ export default function PaymentPage() {
       alert("✅ Ride marked as completed with cash payment!");
       
       // Navigate to homepage after skipping payment
-      navigate("/", { 
+      navigate("/uhome", { 
         state: { 
           cashPayment: true,
           rideDetails: ride
@@ -167,7 +167,7 @@ export default function PaymentPage() {
   };
 
   const handleBackToHome = () => {
-    navigate("/");
+    navigate("/home");
   };
 
   return (

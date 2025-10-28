@@ -11,13 +11,15 @@ import UserProfilePage from "../pages/user/UserProfilepage";
 import HelpSupportPage from "../pages/user/HelpSupportPage";
 import NotFoundPage from "../pages/common/NotFoundPage";
 import PaymentPage from "../pages/user/PaymentPage";
+import LandingPage from "../pages/common/LandingPage";
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         {/* --- Public Routes --- */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<LandingPage/>}/>
+        <Route path="/uhome" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/book-ride" element={<BookRidePage />} />
