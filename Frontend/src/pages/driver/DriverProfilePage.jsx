@@ -9,31 +9,49 @@ export default function DriverProfilePage() {
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Fetch driver profile on component mount
   useEffect(() => {
-  async function fetchProfile() {
-    try {
-      const driverData = await getDriverProfile(); // will send token in service
-      setProfile(driverData);
-    } catch (err) {
-      console.error("Failed to load driver profile:", err);
-      alert("Failed to load profile");
-    } finally {
-      setLoading(false);
+    async function fetchProfile() {
+      try {
+        const driverData = await getDriverProfile();
+        setProfile(driverData);
+      } catch (err) {
+        console.error("Failed to load driver profile:", err);
+        alert("Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
     }
-  }
-  fetchProfile();
-}, []);
+    fetchProfile();
+  }, []);
 
   const handleEdit = () => {
-    setFormData(profile);
+    // Map backend keys to formData keys
+    setFormData({
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      vehicle_type: profile.vehicleType,
+      vehicle_number: profile.vehicleNumber,
+      vehicle_name: profile.vehicleName,
+    });
     setIsEditing(true);
   };
 
   const handleSave = async () => {
     try {
-      const updatedProfile = await updateDriverProfile(formData);
+      // Map formData keys back to backend keys
+      const updatedProfile = await updateDriverProfile({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        vehicleType: formData.vehicle_type,
+        vehicleNumber: formData.vehicle_number,
+        vehicleName: formData.vehicle_name,
+        password: profile.password, // keep current password
+        status: profile.status, // keep current status
+      });
       setProfile(updatedProfile);
       setIsEditing(false);
     } catch (err) {
@@ -41,7 +59,8 @@ export default function DriverProfilePage() {
     }
   };
 
-  if (!profile) return <p className="text-center mt-10">Loading profile...</p>;
+  if (loading) return <p className="text-center mt-10">Loading profile...</p>;
+  if (!profile) return <p className="text-center mt-10">No profile found</p>;
 
   return (
     <DriverLayout driver={profile}>
@@ -94,7 +113,11 @@ export default function DriverProfilePage() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
           <ProfileInfo label="Email" value={profile.email} icon={<Mail />} />
           <ProfileInfo label="Phone" value={profile.phone} icon={<Phone />} />
-          <ProfileInfo label="Vehicle" value={`${profile.vehicle} - ${profile.vehicleNumber}`} icon={<Car />} />
+          <ProfileInfo
+            label="Vehicle"
+            value={`${profile.vehicleType} - ${profile.vehicleNumber} (${profile.vehicleName})`}
+            icon={<Car />}
+          />
         </div>
 
         {/* Edit Button */}
@@ -133,10 +156,10 @@ export default function DriverProfilePage() {
                 Edit Profile
               </h2>
 
-              {["name", "email", "phone", "vehicle", "vehicleNumber"].map((key) => (
+              {["name", "email", "phone", "vehicle_type", "vehicle_number", "vehicle_name"].map((key) => (
                 <div key={key} className="mb-4">
                   <label className="text-sm font-semibold text-gray-600 capitalize">
-                    {key}
+                    {key.replace("_", " ")}
                   </label>
                   <input
                     type="text"

@@ -1,41 +1,69 @@
 // src/pages/driver/DriverDashboard.jsx
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import DriverLayout from "../../component/driver/DriverLayout";
 import { FaStar, FaCarSide, FaWallet, FaClock, FaMapMarkerAlt, FaFlagCheckered } from "react-icons/fa";
 import { RideContext } from "../../context/RideContext";
-import { updateRideStatus } from "../../services/driverService";
+import { updateRideStatus, getDriverProfile, getEarnings } from "../../services/driverService";
 
 export default function DriverDashboard() {
   const navigate = useNavigate();
   const { currentRide, setCurrentRide } = useContext(RideContext);
 
-  const [isOnline, setIsOnline] = useState(true);
+  const [driver, setDriver] = useState({
+    name: "",
+    rating: 0,
+    totalRides: 0,
+    todayEarnings: 0,
+    weeklyEarnings: 0,
+  });
   const [rideStatus, setRideStatus] = useState(currentRide?.status || "Arriving");
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
-  const driver = {
-    name: "John Doe",
-    rating: 4.8,
-    totalRides: 120,
-    todayEarnings: 1500,
-    weeklyEarnings: 8500,
-  };
+  // Fetch driver profile & earnings
+  useEffect(() => {
+    const fetchDriverData = async () => {
+      try {
+        const driverInfo = JSON.parse(localStorage.getItem("driverInfo"));
+        if (!driverInfo) return;
 
+        const profile = await getDriverProfile(driverInfo.id);
+        const earnings = await getEarnings();
+
+        setDriver({
+          name: profile.name,
+          rating: profile.rating || 4.5,
+          totalRides: profile.totalRides || 0,
+          todayEarnings: earnings.today || 0,
+          weeklyEarnings: earnings.weekly || 0,
+        });
+      } catch (err) {
+        console.error("Failed to fetch driver data:", err);
+        alert("Error fetching driver data");
+      }
+    };
+
+    fetchDriverData();
+  }, []);
+
+  // Update ride status
   const handleRideNext = async () => {
     if (!currentRide) return;
     setLoading(true);
+
     try {
-      let next;
-      if (rideStatus === "Arriving") next = "Started";
-      else if (rideStatus === "Started") next = "Completed";
+      let nextStatus;
+      if (rideStatus === "Arriving") nextStatus = "Started";
+      else if (rideStatus === "Started") nextStatus = "Completed";
       else return;
 
-      await updateRideStatus(currentRide.id, next);
-      setRideStatus(next);
+      const updatedRide = await updateRideStatus(currentRide.id, nextStatus);
+      setRideStatus(nextStatus);
+      setCurrentRide(updatedRide);
 
-      if (next === "Completed") {
+      if (nextStatus === "Completed") {
         setCurrentRide(null);
       }
     } catch (err) {
@@ -48,7 +76,7 @@ export default function DriverDashboard() {
 
   return (
     <DriverLayout>
-      {/* Driver Profile Overview */}
+      {/* Driver Overview */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -61,7 +89,6 @@ export default function DriverDashboard() {
           </p>
         </div>
 
-        {/* Online/Offline Toggle */}
         <div className="mt-6 md:mt-0 flex items-center gap-6">
           <span className="text-lg font-semibold text-gray-700">{isOnline ? "Online" : "Offline"}</span>
           <div
@@ -79,7 +106,7 @@ export default function DriverDashboard() {
         </div>
       </motion.div>
 
-      {/* Key Stats */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-white rounded-2xl shadow-md flex flex-col items-center justify-center border-l-4 border-blue-600">
           <FaCarSide className="text-4xl text-blue-600 mb-2" />
@@ -102,11 +129,11 @@ export default function DriverDashboard() {
         <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-white rounded-2xl shadow-md flex flex-col items-center justify-center border-l-4 border-purple-600">
           <FaWallet className="text-4xl text-purple-600 mb-2" />
           <p className="text-gray-500">Ongoing Ride</p>
-          <h2 className="text-2xl font-bold text-gray-800">{currentRide ? currentRide.pickup : "No active ride"}</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{currentRide ? currentRide.origin : "No active ride"}</h2>
         </motion.div>
       </div>
 
-      {/* Current Ride Progress */}
+      {/* Current Ride */}
       {currentRide && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -120,14 +147,14 @@ export default function DriverDashboard() {
               <FaMapMarkerAlt className="text-blue-600 text-2xl" />
               <div>
                 <p className="text-gray-500 text-sm">Pickup</p>
-                <p className="text-gray-800 font-semibold">{currentRide.pickup}</p>
+                <p className="text-gray-800 font-semibold">{currentRide.origin}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
               <FaFlagCheckered className="text-green-600 text-2xl" />
               <div>
                 <p className="text-gray-500 text-sm">Drop</p>
-                <p className="text-gray-800 font-semibold">{currentRide.drop}</p>
+                <p className="text-gray-800 font-semibold">{currentRide.destination}</p>
               </div>
             </div>
           </div>
@@ -135,7 +162,7 @@ export default function DriverDashboard() {
           <div className="flex items-center justify-between mb-6 gap-4">
             <div className="flex items-center gap-3 bg-gray-100 p-4 rounded-xl">
               <FaClock className="text-yellow-500 text-xl" />
-              <p className="text-gray-800 font-semibold">{currentRide.estimatedTime} min</p>
+              <p className="text-gray-800 font-semibold">{currentRide.rideTime || 0} min</p>
             </div>
             <div className="flex items-center gap-3 bg-gray-100 p-4 rounded-xl">
               <FaWallet className="text-green-600 text-xl" />
@@ -152,33 +179,11 @@ export default function DriverDashboard() {
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
-              {rideStatus === "Arriving"
-                ? "Start Trip"
-                : rideStatus === "Started"
-                ? "Complete Trip"
-                : "Done"}
+              {rideStatus === "Arriving" ? "Start Trip" : rideStatus === "Started" ? "Complete Trip" : "Done"}
             </motion.button>
           </div>
         </motion.div>
       )}
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-blue-600 text-white rounded-2xl shadow-md cursor-pointer" onClick={() => navigate("/driver/ride-offer")}>
-          <h2 className="text-2xl font-semibold mb-2">New Ride Offer</h2>
-          <p className="opacity-90">Check incoming ride requests</p>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-green-600 text-white rounded-2xl shadow-md cursor-pointer" onClick={() => navigate("/driver/earnings")}>
-          <h2 className="text-2xl font-semibold mb-2">Earnings</h2>
-          <p className="opacity-90">View earnings & history</p>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-gray-700 text-white rounded-2xl shadow-md cursor-pointer" onClick={() => navigate("/driver/profile")}>
-          <h2 className="text-2xl font-semibold mb-2">Profile</h2>
-          <p className="opacity-90">Manage account & settings</p>
-        </motion.div>
-      </div>
     </DriverLayout>
   );
 }

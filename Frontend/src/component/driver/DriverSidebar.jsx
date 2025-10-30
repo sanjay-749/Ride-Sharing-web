@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FaTachometerAlt,
@@ -8,27 +8,32 @@ import {
   FaRoute,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
-import { RideContext } from "../../context/RideContext"; // ✅ for detecting ongoing ride
+import { RideContext } from "../../context/RideContext";
 
 export default function DriverSidebar({ isOpen }) {
   const { currentRide } = useContext(RideContext);
 
-  const menuItems = [
-    { name: "Dashboard", path: "/driver/dashboard", icon: <FaTachometerAlt /> },
-    { name: "Ride Offers", path: "/driver/ride-offer", icon: <FaCarSide /> },
-    { name: "Earnings", path: "/driver/earnings", icon: <FaHistory /> },
-    { name: "Profile", path: "/driver/profile", icon: <FaUser /> },
-  ];
+  // ✅ Build menu items dynamically
+  const menuItems = useMemo(() => {
+    const baseItems = [
+      { name: "Dashboard", path: "/driver/dashboard", icon: <FaTachometerAlt /> },
+      { name: "Ride Offers", path: "/driver/ride-offer", icon: <FaCarSide /> },
+      { name: "Earnings", path: "/driver/earnings", icon: <FaHistory /> },
+      { name: "Profile", path: "/driver/profile", icon: <FaUser /> },
+    ];
 
-  // ✅ Add dynamic Ride In Progress if an active ride exists
-  if (currentRide) {
-    menuItems.splice(1, 0, {
-      name: "Ride In Progress",
-      path: "/driver/ride-in-progress",
-      icon: <FaRoute />,
-      isLive: true,
-    });
-  }
+    // ✅ Insert "Ride In Progress" only if currentRide exists
+    if (currentRide) {
+      baseItems.splice(1, 0, {
+        name: "Ride In Progress",
+        path: "/driver/RideInProgressPage", // match your route exactly
+        icon: <FaRoute />,
+        isLive: true,
+      });
+    }
+
+    return baseItems;
+  }, [currentRide]);
 
   return (
     <motion.div
@@ -55,8 +60,7 @@ export default function DriverSidebar({ isOpen }) {
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition duration-200 
-              ${
+              `flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition duration-200 ${
                 isActive
                   ? "bg-blue-100 text-blue-700 shadow-md"
                   : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
@@ -80,7 +84,7 @@ export default function DriverSidebar({ isOpen }) {
         ))}
       </nav>
 
-      {/* Footer (optional) */}
+      {/* Footer */}
       <div className="mt-auto mb-6 flex justify-center text-gray-400 text-sm">
         {isOpen && <span>© 2025 RideMart</span>}
       </div>

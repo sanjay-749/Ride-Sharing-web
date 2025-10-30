@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { addDriver } from "../../services/driverService"; // Make sure to export signup API here
+import { signupDriver } from "../../services/driverService";
 
 export default function DriverSignupPage() {
   const navigate = useNavigate();
@@ -10,7 +10,8 @@ export default function DriverSignupPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
-  const [vehicle, setVehicle] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
+  const [vehicleName, setVehicleName] = useState(""); // NEW
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
@@ -22,15 +23,16 @@ export default function DriverSignupPage() {
         email,
         phone,
         vehicleNumber,
-        vehicle,
+        vehicleType,
+        vehicleName, // NEW
         password,
         status: "active" // default status
       };
 
-      const data = await signupDriver({ name, email, phone, vehicleNumber, vehicle, password });
+      const data = await signupDriver(driverData);
       localStorage.setItem("driverToken", data.token);
       localStorage.setItem("driverInfo", JSON.stringify(data.driver));
-navigate("/driver/dashboard");
+      navigate("/driver/dashboard");
     } catch (err) {
       console.error("Signup error:", err);
       alert("Failed to sign up. Please try again.");
@@ -91,8 +93,17 @@ navigate("/driver/dashboard");
             type="text"
             placeholder="Vehicle Type (e.g., Bike, Car)"
             className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none transition duration-300"
-            value={vehicle}
-            onChange={(e) => setVehicle(e.target.value)}
+            value={vehicleType}
+            onChange={(e) => setVehicleType(e.target.value)}
+            required
+          />
+          <motion.input
+            whileFocus={{ scale: 1.02, borderColor: "#06B6D4", boxShadow: "0 0 12px rgba(6,182,212,0.5)" }}
+            type="text"
+            placeholder="Vehicle Name"
+            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none transition duration-300"
+            value={vehicleName}
+            onChange={(e) => setVehicleName(e.target.value)}
             required
           />
           <motion.input
