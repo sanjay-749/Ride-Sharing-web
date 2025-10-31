@@ -68,7 +68,7 @@ export default function LandingPage() {
   };
 
   const handleDriverLogin = () => {
-    navigate("/login", { state: { role: "driver" } });
+    navigate("/driver/login", { state: { role: "driver" } });
   };
 
   const stats = [
