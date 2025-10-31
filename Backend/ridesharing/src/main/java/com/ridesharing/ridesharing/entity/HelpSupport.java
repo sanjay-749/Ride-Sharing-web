@@ -1,4 +1,4 @@
-package com.ridesharing.ridesharing.entity;
+package com.ridesharing.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;

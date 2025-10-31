@@ -1,4 +1,4 @@
-package com.ridesharing.ridesharing.config;
+package com.ridesharing.config;
 
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
