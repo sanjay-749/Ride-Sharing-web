@@ -1,4 +1,4 @@
-package com.ridesharing.repository;
+package com.ridesharing.ridesharing.repository;
 
 import com.ridesharing.entity.Ride;
 import org.springframework.data.jpa.repository.JpaRepository;

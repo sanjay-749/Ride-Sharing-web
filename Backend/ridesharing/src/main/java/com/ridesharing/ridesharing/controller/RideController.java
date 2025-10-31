@@ -1,9 +1,9 @@
-package com.ridesharing.controller;
+package com.ridesharing.ridesharing.controller;
 
-import com.ridesharing.entity.Ride;
-import com.ridesharing.security.JwtUtil;
-import com.ridesharing.service.RideService;
-import com.ridesharing.service.UserService;
+import com.ridesharing.ridesharing.entity.Ride;
+import com.ridesharing.ridesharing.security.JwtUtil;
+import com.ridesharing.ridesharing.service.RideService;
+import com.ridesharing.ridesharing.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;

@@ -1,4 +1,4 @@
-package com.ridesharing.security;
+package com.ridesharing.ridesharing.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;

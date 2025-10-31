@@ -1,4 +1,4 @@
-package com.ridesharing.entity;
+package com.ridesharing.ridesharing.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

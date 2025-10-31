@@ -1,7 +1,7 @@
-package com.ridesharing.service;
+package com.ridesharing.ridesharing.service;
 
-import com.ridesharing.entity.User;
-import com.ridesharing.repository.UserRepository;
+import com.ridesharing.ridesharing.entity.User;
+import com.ridesharing.ridesharing.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -1,4 +1,4 @@
-package com.ridesharing.security;
+package com.ridesharing.ridesharing.security;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;

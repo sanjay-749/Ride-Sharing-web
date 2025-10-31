@@ -1,12 +1,12 @@
-package com.ridesharing.service;
+package com.ridesharing.ridesharing.service;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import com.ridesharing.entity.Ride;
-import com.ridesharing.repository.RideRepository;
+import com.ridesharing.ridesharing.entity.Ride;
+import com.ridesharing.ridesharing.repository.RideRepository;
 
 @Service
 public class RideService {

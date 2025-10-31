@@ -1,8 +1,8 @@
-package com.ridesharing.controller;
+package com.ridesharing.ridesharing.controller;
 
-import com.ridesharing.entity.User;
-import com.ridesharing.security.JwtUtil;
-import com.ridesharing.service.UserService;
+import com.ridesharing.ridesharing.entity.User;
+import com.ridesharing.ridesharing.security.JwtUtil;
+import com.ridesharing.ridesharing.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

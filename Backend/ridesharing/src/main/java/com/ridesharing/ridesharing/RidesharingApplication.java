@@ -1,4 +1,4 @@
-package com.ridesharing;
+package com.ridesharing.ridesharing;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
