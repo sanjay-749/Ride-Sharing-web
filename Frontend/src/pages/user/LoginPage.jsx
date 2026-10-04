@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"; // Import the useAuth hook
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
-  const { login } = useAuth(); // Get the login function from our context
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:8080/auth/login", {
+      const res = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -24,8 +24,10 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Use the context's login function to set the state globally
-        login(data.token); 
+        login(data.token);
+        if (data.id) {
+          localStorage.setItem("userId", String(data.id));
+        }
         setMessage("✅ Login successful! Redirecting...");
         setTimeout(() => navigate("/uhome"), 1500);
       } else {
