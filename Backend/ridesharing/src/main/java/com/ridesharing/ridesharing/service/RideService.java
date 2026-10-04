@@ -24,18 +24,20 @@ public class RideService {
         ride.setPickup(cleanText(ride.getPickup()));
         ride.setDestination(cleanText(ride.getDestination()));
         ride.setVehicle(cleanText(ride.getVehicle()));
-        
-        if (ride.getStatus() == null) {
+
+        if (ride.getStatus() == null || ride.getStatus().isBlank()) {
             ride.setStatus("Driver on the way");
         }
-       
+
+        // userId must come from the authenticated user / request body — never hardcode 1
         if (ride.getUserId() == null) {
-            ride.setUserId(1L);
+            throw new IllegalArgumentException("userId is required to create a ride");
         }
-        
-        if (ride.getPaymentStatus() == null) {
+
+        if (ride.getPaymentStatus() == null || ride.getPaymentStatus().isBlank()) {
             ride.setPaymentStatus("pending");
         }
+
         return rideRepository.save(ride);
     }
 
