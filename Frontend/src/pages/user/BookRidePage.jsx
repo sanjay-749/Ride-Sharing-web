@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const mapContainerStyle = {
   width: "100%",
   height: "200px",
   borderRadius: "15px",
-  border: "1px solid #ccc"
+  border: "1px solid #ccc",
 };
 
+const API_BASE = "http://localhost:8080";
+
 export default function BookRidePage() {
+  const { isAuthenticated } = useAuth();
   const [pickup, setPickup] = useState("");
   const [destination, setDestination] = useState("");
   const [pickupSuggestions, setPickupSuggestions] = useState([]);
@@ -22,13 +26,32 @@ export default function BookRidePage() {
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mapImage, setMapImage] = useState("");
-  const [debugInfo, setDebugInfo] = useState("");
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
   const pickupRef = useRef(null);
   const destinationRef = useRef(null);
 
-  // Fetch suggestions from OpenStreetMap Nominatim API
+  const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("authToken");
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
+  const getUserId = () => {
+    const stored = localStorage.getItem("userId");
+    if (stored) {
+      const id = Number(stored);
+      if (!Number.isNaN(id) && id > 0) return id;
+    }
+    return null;
+  };
+
   const fetchSuggestions = async (query, setSuggestions) => {
     if (query.length < 3) {
       setSuggestions([]);
@@ -46,21 +69,23 @@ export default function BookRidePage() {
     }
   };
 
-  // Generate static map image when coordinates change
   useEffect(() => {
+    if (!mapsKey) {
+      setMapImage("");
+      return;
+    }
     if (pickupCoords && destinationCoords) {
-      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=400x200&markers=color:blue%7Clabel:P%7C${pickupCoords.lat},${pickupCoords.lng}&markers=color:red%7Clabel:D%7C${destinationCoords.lat},${destinationCoords.lng}&path=color:0x0000ff80|weight:5|${pickupCoords.lat},${pickupCoords.lng}|${destinationCoords.lat},${destinationCoords.lng}&key=YOUR_GOOGLE_MAPS_KEY`;
+      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=400x200&markers=color:blue%7Clabel:P%7C${pickupCoords.lat},${pickupCoords.lng}&markers=color:red%7Clabel:D%7C${destinationCoords.lat},${destinationCoords.lng}&path=color:0x0000ff80|weight:5|${pickupCoords.lat},${pickupCoords.lng}|${destinationCoords.lat},${destinationCoords.lng}&key=${mapsKey}`;
       setMapImage(mapUrl);
     } else if (pickupCoords || destinationCoords) {
       const coords = pickupCoords || destinationCoords;
-      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=400x200&markers=color:green%7C${coords.lat},${coords.lng}&zoom=13&key=YOUR_GOOGLE_MAPS_KEY`;
+      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=400x200&markers=color:green%7C${coords.lat},${coords.lng}&zoom=13&key=${mapsKey}`;
       setMapImage(mapUrl);
     } else {
       setMapImage("");
     }
-  }, [pickupCoords, destinationCoords]);
+  }, [pickupCoords, destinationCoords, mapsKey]);
 
-  // Debounced pickup suggestions
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (pickup) fetchSuggestions(pickup, setPickupSuggestions);
@@ -69,7 +94,6 @@ export default function BookRidePage() {
     return () => clearTimeout(timeout);
   }, [pickup]);
 
-  // Debounced destination suggestions
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (destination) fetchSuggestions(destination, setDestinationSuggestions);
@@ -91,17 +115,16 @@ export default function BookRidePage() {
     }
   };
 
-  // Simple Haversine distance calculation
   const calculateDistance = (c1, c2) => {
-    if (!c1 || !c2) return 5; // default 5km
+    if (!c1 || !c2) return 5;
     const R = 6371;
-    const dLat = (c2.lat - c1.lat) * Math.PI / 180;
-    const dLon = (c2.lng - c1.lng) * Math.PI / 180;
+    const dLat = ((c2.lat - c1.lat) * Math.PI) / 180;
+    const dLon = ((c2.lng - c1.lng) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) ** 2 +
-      Math.cos(c1.lat * Math.PI / 180) *
-      Math.cos(c2.lat * Math.PI / 180) *
-      Math.sin(dLon / 2) ** 2;
+      Math.cos((c1.lat * Math.PI) / 180) *
+        Math.cos((c2.lat * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -116,11 +139,19 @@ export default function BookRidePage() {
       alert("Please select valid locations from the suggestions");
       return;
     }
-    
+
     const distance = calculateDistance(pickupCoords, destinationCoords);
     const calculatedFare = Math.max(50, Math.floor(distance * 15));
     setFare(calculatedFare);
     setStep(2);
+    setError("");
+  };
+
+  const getFinalFare = () => {
+    if (fare == null) return 0;
+    if (vehicle === "Sedan") return fare + 20;
+    if (vehicle === "SUV") return fare + 40;
+    return fare;
   };
 
   const handleConfirmBooking = async () => {
@@ -129,8 +160,22 @@ export default function BookRidePage() {
       return;
     }
 
+    const token = localStorage.getItem("authToken");
+    if (!token || !isAuthenticated) {
+      alert("Please login to book a ride");
+      navigate("/login");
+      return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+      alert("User session incomplete. Please login again.");
+      navigate("/login");
+      return;
+    }
+
     setLoading(true);
-    setDebugInfo("Starting booking process...");
+    setError("");
 
     const rideData = {
       pickup,
@@ -140,117 +185,52 @@ export default function BookRidePage() {
       destinationLat: destinationCoords.lat,
       destinationLng: destinationCoords.lng,
       vehicle,
-      fare,
-      userId: 1
+      fare: getFinalFare(),
+      userId,
+      status: "Driver on the way",
+      paymentStatus: "pending",
     };
 
-    console.log("Sending ride data:", rideData);
-    setDebugInfo("Sending request to /api/rides...");
-
     try {
-      // TEST BOTH OPTIONS - Try proxy first, then direct
-      let res;
-      let usedProxy = true;
-      
-      try {
-        // Option 1: Try with proxy (remove localhost:8080)
-        setDebugInfo("Trying proxy: /api/rides");
-        res = await fetch("/api/rides", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(rideData)
-        });
-      } catch (proxyError) {
-        // Option 2: If proxy fails, try direct
-        setDebugInfo("Proxy failed, trying direct: http://localhost:8080/api/rides");
-        usedProxy = false;
-        res = await fetch("http://localhost:8080/api/rides", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(rideData)
-        });
-      }
-
-      console.log("Response status:", res.status);
-      console.log("Response headers:", res.headers);
-      setDebugInfo(`Response status: ${res.status}, Used proxy: ${usedProxy}`);
+      const res = await fetch(`${API_BASE}/api/rides`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(rideData),
+      });
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Server error details:", errorText);
-        setDebugInfo(`Error ${res.status}: ${errorText}`);
-        
-        if (res.status === 403) {
-          throw new Error("Access forbidden. Check CORS configuration on server.");
-        } else if (res.status === 404) {
-          throw new Error("Endpoint not found. Check if backend is running.");
-        } else if (res.status === 500) {
-          throw new Error("Server error. Check backend logs.");
-        } else {
-          throw new Error(`Server returned: ${res.status} - ${errorText}`);
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("Session expired or not authorized. Please login again.");
         }
+        if (res.status === 404) {
+          throw new Error("Booking endpoint not found. Is the backend running?");
+        }
+        throw new Error(errorText || `Booking failed (${res.status})`);
       }
 
       const ride = await res.json();
-      console.log("Ride created successfully:", ride);
-      setDebugInfo("✅ Ride booked successfully!");
-      
       alert("✅ Ride booked successfully!");
       navigate("/track", { state: { ride } });
     } catch (err) {
       console.error("Booking error:", err);
-      setDebugInfo(`❌ Error: ${err.message}`);
-      alert("Error booking ride: " + err.message);
+      setError(err.message || "Failed to book ride");
+      alert("Error booking ride: " + (err.message || "Unknown error"));
     } finally {
       setLoading(false);
     }
-  };
-
-  // Temporary mock function for testing
-  const handleMockBooking = () => {
-    setLoading(true);
-    setDebugInfo("Using mock booking...");
-    
-    // Create mock ride data
-    const mockRide = {
-      id: Math.floor(Math.random() * 1000),
-      pickup,
-      destination,
-      pickupLat: pickupCoords.lat,
-      pickupLng: pickupCoords.lng,
-      destinationLat: destinationCoords.lat,
-      destinationLng: destinationCoords.lng,
-      vehicle,
-      fare,
-      userId: 1,
-      status: "Driver on the way 🚕"
-    };
-
-    console.log("Mock ride data:", mockRide);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      alert("✅ Ride booked successfully! (Mock)");
-      setDebugInfo("✅ Mock booking successful!");
-      navigate("/track", { state: { ride: mockRide } });
-      setLoading(false);
-    }, 1500);
   };
 
   const renderMapPreview = () => {
     if (mapImage) {
       return (
         <div style={mapContainerStyle} className="overflow-hidden">
-          <img 
-            src={mapImage} 
-            alt="Route Map" 
+          <img
+            src={mapImage}
+            alt="Route Map"
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.style.display = 'none';
+              e.target.style.display = "none";
             }}
           />
         </div>
@@ -276,31 +256,35 @@ export default function BookRidePage() {
           <p className="text-gray-600">Quick, safe, and reliable rides</p>
         </div>
 
-        {/* Debug Info */}
-        {debugInfo && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">{debugInfo}</p>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
-        {/* Progress Steps */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step === 1 ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                step === 1 ? "bg-indigo-600 text-white" : "bg-gray-300 text-gray-600"
+              }`}
+            >
               1
             </div>
-            <div className={`w-16 h-1 ${step === 1 ? 'bg-gray-300' : 'bg-indigo-600'}`}></div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step === 2 ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className={`w-16 h-1 ${step === 1 ? "bg-gray-300" : "bg-indigo-600"}`}></div>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                step === 2 ? "bg-indigo-600 text-white" : "bg-gray-300 text-gray-600"
+              }`}
+            >
               2
             </div>
           </div>
         </div>
 
-        {/* Step 1: Pickup & Destination */}
         {step === 1 && (
           <form onSubmit={handleSearch} className="flex flex-col gap-6">
             <div className="space-y-4">
-              {/* Pickup Input */}
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   📍 Pickup Location
@@ -310,7 +294,7 @@ export default function BookRidePage() {
                   type="text"
                   placeholder="Where are you now?"
                   value={pickup}
-                  onChange={e => setPickup(e.target.value)}
+                  onChange={(e) => setPickup(e.target.value)}
                   onFocus={() => setShowPickupSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowPickupSuggestions(false), 200)}
                   className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 outline-none"
@@ -318,7 +302,7 @@ export default function BookRidePage() {
                 />
                 {showPickupSuggestions && pickupSuggestions.length > 0 && (
                   <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                    {pickupSuggestions.map(place => (
+                    {pickupSuggestions.map((place) => (
                       <div
                         key={place.place_id}
                         className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
@@ -326,10 +310,10 @@ export default function BookRidePage() {
                       >
                         <div className="font-medium text-gray-800 flex items-start">
                           <span className="text-indigo-500 mr-2">📍</span>
-                          {place.display_name.split(',')[0]}
+                          {place.display_name.split(",")[0]}
                         </div>
                         <div className="text-sm text-gray-500 ml-4 mt-1">
-                          {place.display_name.split(',').slice(1, 3).join(',')}
+                          {place.display_name.split(",").slice(1, 3).join(",")}
                         </div>
                       </div>
                     ))}
@@ -337,7 +321,6 @@ export default function BookRidePage() {
                 )}
               </div>
 
-              {/* Destination Input */}
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   🎯 Destination
@@ -347,7 +330,7 @@ export default function BookRidePage() {
                   type="text"
                   placeholder="Where do you want to go?"
                   value={destination}
-                  onChange={e => setDestination(e.target.value)}
+                  onChange={(e) => setDestination(e.target.value)}
                   onFocus={() => setShowDestinationSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowDestinationSuggestions(false), 200)}
                   className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 outline-none"
@@ -355,7 +338,7 @@ export default function BookRidePage() {
                 />
                 {showDestinationSuggestions && destinationSuggestions.length > 0 && (
                   <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                    {destinationSuggestions.map(place => (
+                    {destinationSuggestions.map((place) => (
                       <div
                         key={place.place_id}
                         className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
@@ -363,10 +346,10 @@ export default function BookRidePage() {
                       >
                         <div className="font-medium text-gray-800 flex items-start">
                           <span className="text-green-500 mr-2">🎯</span>
-                          {place.display_name.split(',')[0]}
+                          {place.display_name.split(",")[0]}
                         </div>
                         <div className="text-sm text-gray-500 ml-4 mt-1">
-                          {place.display_name.split(',').slice(1, 3).join(',')}
+                          {place.display_name.split(",").slice(1, 3).join(",")}
                         </div>
                       </div>
                     ))}
@@ -375,10 +358,7 @@ export default function BookRidePage() {
               </div>
             </div>
 
-            {/* Map Preview */}
-            <div className="mt-2">
-              {renderMapPreview()}
-            </div>
+            <div className="mt-2">{renderMapPreview()}</div>
 
             <button
               type="submit"
@@ -390,33 +370,34 @@ export default function BookRidePage() {
           </form>
         )}
 
-        {/* Step 2: Fare & Vehicle Selection */}
         {step === 2 && (
           <div className="flex flex-col gap-6">
-            {/* Fare Display */}
             <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-2xl border border-green-200 text-center">
               <p className="text-lg text-gray-700 mb-2">Estimated Fare</p>
-              <p className="text-4xl font-bold text-green-600">₹{fare}</p>
+              <p className="text-4xl font-bold text-green-600">₹{getFinalFare() || fare}</p>
               <div className="text-sm text-gray-500 mt-3 space-y-1">
-                <p>📍 <span className="font-medium">From:</span> {pickup.split(',')[0]}</p>
-                <p>🎯 <span className="font-medium">To:</span> {destination.split(',')[0]}</p>
+                <p>
+                  📍 <span className="font-medium">From:</span> {pickup.split(",")[0]}
+                </p>
+                <p>
+                  🎯 <span className="font-medium">To:</span> {destination.split(",")[0]}
+                </p>
               </div>
             </div>
 
-            {/* Vehicle Selection */}
             <div className="space-y-4">
               <label className="block text-lg font-semibold text-gray-700 text-center">
                 🚗 Select Your Ride
               </label>
-              
+
               <div className="grid gap-3">
                 <button
                   type="button"
                   onClick={() => setVehicle("Mini")}
                   className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                    vehicle === "Mini" 
-                    ? 'border-indigo-500 bg-indigo-50 shadow-md' 
-                    : 'border-gray-300 hover:border-indigo-300 hover:bg-gray-50'
+                    vehicle === "Mini"
+                      ? "border-indigo-500 bg-indigo-50 shadow-md"
+                      : "border-gray-300 hover:border-indigo-300 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex justify-between items-center">
@@ -432,9 +413,9 @@ export default function BookRidePage() {
                   type="button"
                   onClick={() => setVehicle("Sedan")}
                   className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                    vehicle === "Sedan" 
-                    ? 'border-indigo-500 bg-indigo-50 shadow-md' 
-                    : 'border-gray-300 hover:border-indigo-300 hover:bg-gray-50'
+                    vehicle === "Sedan"
+                      ? "border-indigo-500 bg-indigo-50 shadow-md"
+                      : "border-gray-300 hover:border-indigo-300 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex justify-between items-center">
@@ -450,9 +431,9 @@ export default function BookRidePage() {
                   type="button"
                   onClick={() => setVehicle("SUV")}
                   className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                    vehicle === "SUV" 
-                    ? 'border-indigo-500 bg-indigo-50 shadow-md' 
-                    : 'border-gray-300 hover:border-indigo-300 hover:bg-gray-50'
+                    vehicle === "SUV"
+                      ? "border-indigo-500 bg-indigo-50 shadow-md"
+                      : "border-gray-300 hover:border-indigo-300 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex justify-between items-center">
@@ -466,7 +447,6 @@ export default function BookRidePage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-3">
               <button
                 onClick={handleConfirmBooking}
@@ -484,15 +464,6 @@ export default function BookRidePage() {
                     Confirm & Book Ride
                   </>
                 )}
-              </button>
-
-              {/* Mock booking button for testing */}
-              <button
-                onClick={handleMockBooking}
-                disabled={loading || !vehicle}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-3 rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:transform-none flex items-center justify-center gap-2"
-              >
-                🧪 Test Mock Booking
               </button>
 
               <button
