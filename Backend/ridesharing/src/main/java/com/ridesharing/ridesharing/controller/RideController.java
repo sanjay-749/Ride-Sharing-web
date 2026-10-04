@@ -4,6 +4,8 @@ import com.ridesharing.ridesharing.entity.Ride;
 import com.ridesharing.ridesharing.security.JwtUtil;
 import com.ridesharing.ridesharing.service.RideService;
 import com.ridesharing.ridesharing.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/rides")
+@CrossOrigin(origins = "http://localhost:5173")
 public class RideController {
 
     private final RideService rideService;
@@ -25,80 +28,104 @@ public class RideController {
     }
 
     @PostMapping
-    public Ride bookRide(@RequestBody Ride ride) {
-        System.out.println("Received booking request from frontend!");
-        System.out.println("From: " + ride.getPickup());
-        System.out.println("To: " + ride.getDestination());
-        System.out.println("Vehicle: " + ride.getVehicle());
-        System.out.println("Fare: " + ride.getFare());
-        
+    public ResponseEntity<?> bookRide(
+            @RequestBody Ride ride,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
         try {
+            // Prefer authenticated user from JWT over any client-supplied userId
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String email = jwtUtil.extractEmail(token);
+                if (email != null) {
+                    Long userId = userService.getUserIdByEmail(email);
+                    if (userId != null) {
+                        ride.setUserId(userId);
+                    }
+                }
+            }
+
+            if (ride.getUserId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Authentication required to book a ride"));
+            }
+
             Ride savedRide = rideService.createRide(ride);
-            System.out.println("Ride saved successfully with ID: " + savedRide.getId());
-            return savedRide;
+            return ResponseEntity.ok(savedRide);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            System.out.println("Error saving ride: " + e.getMessage());
-            throw e;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to book ride: " + e.getMessage()));
         }
     }
 
     @GetMapping("/{id}")
-    public Ride getRide(@PathVariable Long id) {
-        return rideService.getRide(id);
+    public ResponseEntity<?> getRide(@PathVariable Long id) {
+        Ride ride = rideService.getRide(id);
+        if (ride == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Ride not found"));
+        }
+        return ResponseEntity.ok(ride);
     }
 
     @PutMapping("/{id}/status")
-    public Ride updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return rideService.updateRideStatus(id, status);
+    public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        Ride updated = rideService.updateRideStatus(id, status);
+        if (updated == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Ride not found"));
+        }
+        return ResponseEntity.ok(updated);
     }
 
     @PutMapping("/{id}/complete")
-    public Map<String, Object> completeRide(@PathVariable Long id, @RequestBody Map<String, String> updateData) {
+    public ResponseEntity<?> completeRide(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> updateData) {
         try {
             String status = updateData.get("status");
             String paymentMethod = updateData.get("paymentMethod");
             String paymentStatus = updateData.get("paymentStatus");
-            
-            System.out.println("Completing ride ID: " + id);
-            System.out.println("Payment Method: " + paymentMethod);
-            System.out.println("Payment Status: " + paymentStatus);
-            
+
             Ride completedRide = rideService.completeRide(id, status, paymentMethod, paymentStatus);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Ride completed successfully");
             response.put("ride", completedRide);
-            
-            return response;
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.out.println("Error completing ride: " + e.getMessage());
-            throw new RuntimeException("Failed to complete ride: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to complete ride: " + e.getMessage()));
         }
     }
 
     @GetMapping("/user/history")
-    public List<Ride> getUserRideHistory(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getUserRideHistory(
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Missing or invalid token"));
+            }
+
             String token = authHeader.substring(7);
             String userEmail = jwtUtil.extractEmail(token);
-            
-            System.out.println("Fetching ride history for user: " + userEmail);
-            
             Long userId = userService.getUserIdByEmail(userEmail);
-            
+
             if (userId == null) {
-                System.out.println("User not found for email: " + userEmail);
-                throw new RuntimeException("User not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "User not found"));
             }
-            
+
             List<Ride> userRides = rideService.getCompletedRidesByUserId(userId);
-            System.out.println("Found " + userRides.size() + " completed rides for user: " + userEmail);
-            
-            return userRides;
+            return ResponseEntity.ok(userRides);
         } catch (Exception e) {
-            System.out.println("Error fetching user ride history: " + e.getMessage());
-            throw new RuntimeException("Failed to fetch ride history: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to fetch ride history: " + e.getMessage()));
         }
     }
 }
