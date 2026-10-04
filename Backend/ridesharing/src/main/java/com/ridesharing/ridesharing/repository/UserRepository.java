@@ -1,7 +1,8 @@
-package com.ridesharing.repository;
+package com.ridesharing.ridesharing.repository;
 
-import com.ridesharing.entity.User;
+import com.ridesharing.ridesharing.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
