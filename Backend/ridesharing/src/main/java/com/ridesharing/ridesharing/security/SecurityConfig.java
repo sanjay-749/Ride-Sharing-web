@@ -23,9 +23,10 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/drivers/login").permitAll()
+                        .requestMatchers("/api/drivers/login", "/api/drivers/signup").permitAll()
                         .requestMatchers("/api/drivers/**").hasRole("DRIVER")
                         .requestMatchers("/api/user/**").hasRole("USER")
+                        .requestMatchers("/api/rides/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
