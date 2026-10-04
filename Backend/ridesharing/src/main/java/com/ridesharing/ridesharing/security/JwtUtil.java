@@ -3,10 +3,11 @@ package com.ridesharing.ridesharing.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,21 +17,24 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private static final String DEFAULT_BASE64_SECRET = "VGhpcyBpcyBhIHNlY3JldCBrZXkgZm9yIGRldg=="; // "This is a secret key for dev"
+    @Value("${jwt.secret:your-very-long-secret-key-that-is-at-least-32-chars-long-here}")
+    private String secret;
+
+    @Value("${jwt.expiration:86400000}")
+    private long expirationMs;
 
     private Key getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(DEFAULT_BASE64_SECRET);
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // ✅ generateToken(email, role)
     public String generateToken(String email, String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role != null ? role : "USER");
+        String normalizedRole = role == null ? "USER" : role.replace("ROLE_", "");
+        claims.put("role", normalizedRole);
         return createToken(claims, email);
     }
 
-    // ✅ keep old one-argument version for existing controllers
     public String generateToken(String email) {
         return generateToken(email, "USER");
     }
@@ -41,7 +45,7 @@ public class JwtUtil {
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + 1000L * 60 * 60 * 10)) // 10 hrs
+                .setExpiration(new Date(now + expirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -81,13 +85,11 @@ public class JwtUtil {
         return exp != null && exp.before(new Date());
     }
 
-    // ✅ Original method used in JwtFilter
     public boolean validateToken(String token, String email) {
         final String tokenEmail = extractEmail(token);
         return tokenEmail != null && tokenEmail.equals(email) && !isTokenExpired(token);
     }
 
-    // ✅ NEW overloaded method for ProfileController and older code
     public boolean validateToken(String token) {
         try {
             return !isTokenExpired(token);
