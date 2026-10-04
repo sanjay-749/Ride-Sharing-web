@@ -21,12 +21,11 @@ public class Ride {
     private double destinationLng;
     private String vehicle;
     private double fare;
-    private String status = "Driver on the way"; // Default value
+    private String status = "Driver on the way";
 
-    // Optional: userId or relation
-    private Long userId = 1L; // Default user ID
+    // Must be set from authenticated user — no default
+    private Long userId;
 
-    // Timestamps
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -35,18 +34,15 @@ public class Ride {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Additional fields for better history
     private String driverName;
     private String vehicleNumber;
-    private Double distance; // in km
-    private Integer duration; // in minutes
+    private Double distance;
+    private Integer duration;
     private String paymentMethod;
     private String paymentStatus = "pending";
 
-    // Default constructor
     public Ride() {}
 
-    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getPickup() { return pickup; }
